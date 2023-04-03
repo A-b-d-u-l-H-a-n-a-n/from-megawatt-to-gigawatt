@@ -7,6 +7,8 @@ import wbgapi as wb
 import warnings
 warnings.filterwarnings('ignore')
 
+# =========================Data Gathering============================
+
 def take_data(indicator): 
     data = wb.data.DataFrame(indicator)
     df = pd.DataFrame(data)
@@ -24,6 +26,8 @@ gas_emission, gas_emission_t = take_data('EN.ATM.GHGT.KT.CE')
 urban_p, urban_p_t = take_data('SP.URB.TOTL')
 forest, forest_t = take_data('AG.LND.FRST.K2')
 
+
+#=========================Data Transformation=============================
 def data_transform(df):
     renamed_df = df.copy()
     renamed_df.columns.names = ['Country Code']
@@ -42,6 +46,7 @@ transform_gas_emission = data_transform(gas_emission_t)
 transform_urban_p = data_transform(urban_p_t)
 transform_forest = data_transform(forest_t)
 
+#============================Data Cleaning==============================
 def handling_null(df):
     cleaned_df = df.copy()
     cleaned_df.dropna(how='all', axis = 1, inplace = True)
@@ -61,7 +66,7 @@ cleaned_gas_emission = handling_null(transform_gas_emission)
 cleaned_urban_p = handling_null(transform_urban_p)
 cleaned_forest = handling_null(transform_forest)
 
-# Function for aggregate to global data
+# Aggreagating global data
 def get_global_data(df, name, metric = '%'):
     year_list = df.index
     value_by_time = [df.loc[year,:].mean() for year in year_list]
@@ -80,7 +85,7 @@ def get_global_data(df, name, metric = '%'):
     
     return global_data
 
-# Function for calculate avg global data
+# Calculating avg global data
 def get_avg_per_year(df):
     differences = []
     start_year = df.index[0]
@@ -92,7 +97,7 @@ def get_avg_per_year(df):
     difference_avg = sum(differences) / len(differences)
     return round(difference_avg, 3)
 
-# Function for aggregate country data
+# Aggregating country data
 def agg_data(country):
     country_electric = cleaned_electric.loc[1971:2014, country]
     country_ep_oil = cleaned_ep_oil.loc[1971:2014, country]
@@ -124,6 +129,7 @@ def agg_data(country):
     
     return concatenated_data
 
+# Generate correlation chart
 def add_corr_chart(fig, x, y, xlabel, ylabel, color):
     fig.add_trace(
         go.Scatter(
@@ -170,6 +176,7 @@ def add_corr_chart(fig, x, y, xlabel, ylabel, color):
     )
     return fig
 
+# Adding timeseries line
 def add_chart(fig, data, indicator, label, color):
     start_year = data.index[0]
     end_year = data.index[-1]
@@ -215,6 +222,7 @@ def add_chart(fig, data, indicator, label, color):
     )
     return fig
 
+# Adding timeseries line (Extension)
 def eps_line(fig, global_data, source_name, label, color):
     y_data = global_data[source_name].values
 
@@ -222,7 +230,7 @@ def eps_line(fig, global_data, source_name, label, color):
     annot(y_data, label)
     return fig
 
-# Function for custom plot template
+# Customize plot template
 def fig_template(fig):
     fig.update_layout(
         width = 700,
@@ -258,7 +266,7 @@ def fig_template(fig):
     
     return fig
 
-# Function for reset annotation
+# Resetting annotation
 def reset_annot():
     global annotations
     annotations = []
@@ -301,7 +309,7 @@ def annot(y_data, labels, metric = '%'):
     ),
     )
     
-# Function for add title in plot
+# Adding title in plot
 def add_title(title, size = 30, position = 0):
     annotations.append(dict(
         xref = 'paper', yref = 'paper', 
@@ -317,7 +325,7 @@ def add_title(title, size = 30, position = 0):
     ),
     )
 
-# Function for add text in plot 
+# Adding text in plot 
 def add_text(text):
     annotations.append(dict(
         xref = 'paper', yref = 'paper', 
@@ -333,6 +341,7 @@ def add_text(text):
     ),
     )
 
+# Creating correlation table
 def corr_table(*list_data, start_year):
     df = []
     for data in list_data:
@@ -344,6 +353,7 @@ def corr_table(*list_data, start_year):
     ).corr()
     return corr_table
 
+# Generate heatmap
 def make_heatmap(df,title):
     heatmap = px.imshow(
         df,text_auto = True, 
@@ -361,7 +371,8 @@ def make_heatmap(df,title):
         )
     )
     return heatmap
-#===========================================================================
+#==============================Figure. 1=============================================
+# Create input for figure
 global_electric = get_global_data(cleaned_electric, 'Electric Power (kWh)','kWh') 
 y_data = global_electric['Electric Power (kWh)'].values
 annual_decrease = get_avg_per_year(global_electric)[0]
@@ -385,7 +396,8 @@ plot(fig, auto_open = True)
 reset_annot()
 #===========================================================================
 
-#======================================================================
+#==============================Figure.2 /========================================
+# Create input for figure
 global_gas_emission = get_global_data(cleaned_gas_emission, 'Gas Emission (kt)','kt') 
 y_data = global_gas_emission['Gas Emission (kt)'].values
 annual_decrease = get_avg_per_year(global_gas_emission)[0]
@@ -409,44 +421,52 @@ plot(fig, auto_open = True)
 reset_annot()
 #===============================================================
 
-#==================================================================
+#=======================Figure. 3===========================================
+# Create input for figure
 global_oil = get_global_data(cleaned_ep_oil, 'EP Oil (%)')
 global_nuclear = get_global_data(cleaned_ep_nuclear, 'EP Nuclear (%)')
 global_natural_gas = get_global_data(cleaned_ep_natural_gas, 'EP Natural Gas (%)')
 global_coal = get_global_data(cleaned_ep_coal, 'EP Coal (%)')
 
+# Make a correlation matrix
 matrix = corr_table(global_gas_emission,global_oil,
                     global_nuclear,global_natural_gas,global_coal,
                     start_year = 1971)
 
+# Generate heatmap from correlation matrix
 heatmap = make_heatmap(matrix,'Electric Source Production vs Gas Emission')
 plot(heatmap, auto_open = True)
 #==================================================================
 
-#====================================================================
-fig = go.Figure()
-fig = fig_template(fig)
-reset_annot()
-
+#===========================Figure. 4=========================================
+# Create input for figure
 global_oil = global_oil.loc[1971:,]
 global_nuclear = global_nuclear.loc[1971:,]
 global_natural_gas = global_natural_gas.loc[1971:,]
 global_coal = global_coal.loc[1971:,]
 
+# Create plot
+fig = go.Figure()
+fig = fig_template(fig)
+reset_annot()
 
+# Adding chart to existing plot
 fig = eps_line(fig, global_oil, 'EP Oil (%)','Oil', 'gray')
 fig = eps_line(fig, global_nuclear, 'EP Nuclear (%)','Nuclear', 'gray')
 fig = eps_line(fig, global_natural_gas, 'EP Natural Gas (%)','Natural Gas', 'red')
 fig = eps_line(fig, global_coal, 'EP Coal (%)','Coal', 'gray')
 
+# Adding title
 add_title('Global Electric Production Sources (1971 - 2014)(%)', 24)
 
+# Generate plot
 fig.update_layout(annotations = annotations)
 plot(fig, auto_open = True)
 reset_annot()
 #========================================================
 
-#================================================================
+#=======================Figure. 5=========================================
+# Create input for figure
 global_urban_p = get_global_data(cleaned_urban_p, 'Urban Population', 'Billion')
 global_electric_access = get_global_data(cleaned_electric_access, 'Electric Access (%)')
 global_forest = get_global_data(cleaned_forest, 'Forest Area (sq. km)')
@@ -454,60 +474,79 @@ global_forest = get_global_data(cleaned_forest, 'Forest Area (sq. km)')
 x = global_urban_p['Urban Population']
 y = global_gas_emission['Gas Emission (kt)'].values
 
+# Create plot
 fig = go.Figure()
 add_corr_chart(fig, x, y, 'Urban Population (Million)', 'Gas Emission (gt)', 'red')
 
+# Generate plot
 reset_annot()
 add_title('Urban Population vs Gas Emission',position =0.14)
 fig.update_layout(annotations = annotations)
 plot(fig, auto_open = True)
 reset_annot()
-#-------------------------------------------------------
+#---------------------Figure. 6----------------------------------
+# Make a correlation matrix
 matrix = corr_table(global_urban_p,global_electric_access,global_forest,
                     start_year = 2000)
+
+# Generate plot
 heatmap = make_heatmap(matrix,'Urban Population Relationship')
 plot(heatmap, auto_open = True)
 #==========================================================
 
-#============================================================
+#=======================Figure. 7=====================================
+# Create input for figure
 denmark = agg_data('DNK')
 denmark_renew_energy = denmark.loc[1990:, 'Renewable Energy (%)'].to_frame()
 y_data = denmark_renew_energy['Renewable Energy (%)'].values
+
+# Create plot
 fig = go.Figure()
 fig = fig_template(fig)
 fig = add_chart(fig, denmark_renew_energy, 'Renewable Energy (%)', 
                 'Renewable Energy', 'yellowgreen')
 
+# Customizing plot
 reset_annot()
 annot(y_data, 'Denmark')
 add_title('Denmark Renewable Energy Consumption (1990 - 2014)(%)', 20)
 
+# Generate plot
 fig.update_layout(annotations = annotations)
 plot(fig, auto_open = True)
 reset_annot()
 # ==================================
 
-#=================================================
+#=================Figure. 8================================
+# Create input for figure
 y = denmark.loc[1990:,'Gas Emission (kt)'].values
 x = denmark.loc[1990:,'Renewable Energy (%)'].values
 
+# Create plot
 fig = go.Figure()
 add_corr_chart(fig, x, y, 'Renewable Energy (%)', 'Gas Emission (kt)', 'yellowgreen')
 
+# Adding plot
 reset_annot()
-add_title('Renewable Energy vs Gas Emission',position=0.14)
+add_title('Renewable Energy vs Gas Emission', position=0.14)
+
+# Generate plot
 fig.update_layout(annotations = annotations)
 plot(fig, auto_open = True)
 reset_annot()
 #================================================
 
-#===============================================
+#===============Figure. 9================================
+# Create input for figure
 denmark_renew_energy = denmark[['Renewable Energy (%)']]
-denmarl_electric = denmark[['Electric Power (kWh)']]
+denmark_electric = denmark[['Electric Power (kWh)']]
 denmark_gas_emission = denmark[['Gas Emission (kt)']]
 
-matrix = corr_table(denmark_renew_energy,denmarl_electric,denmark_gas_emission,
+# Make a correlation matrix
+matrix = corr_table(denmark_renew_energy, denmark_electric, denmark_gas_emission,
                     start_year = 1990)
+
+# Generate heatmap from correlation matrix
 heatmap = make_heatmap(matrix,'Renewable Energy Contribution in Denmark')
 plot(heatmap, auto_open = True)
 #=============================================
