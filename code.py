@@ -317,7 +317,7 @@ def add_title(title, size = 30, position = 0):
         xanchor = 'left', yanchor='bottom',
         text = title,
         font = dict(
-            family='Arial',
+            family = 'Arial',
             size = size,
             color = 'rgb(37,37,37)'
         ),
@@ -347,22 +347,19 @@ def corr_table(*list_data, start_year):
     for data in list_data:
         df.append(data.loc[start_year:])
         
-    corr_table = pd.concat(
-        df, 
-        axis = 1
-    ).corr()
+    corr_table = pd.concat(df, axis = 1).corr()
     return corr_table
 
 # Generate heatmap
 def make_heatmap(df,title):
     heatmap = px.imshow(
-        df,text_auto = True, 
+        df, text_auto = True, 
         color_continuous_scale = 'RdYlGn', 
         title = '<b>{}</b>'.format(title)
     )
 
     heatmap.update_layout(
-        width=550, title_x = 0.55,
+        width = 550, title_x = 0.55,
         xaxis = dict(tickangle = 45),
         font = dict(
             family = 'Arial',
